@@ -3,6 +3,7 @@ package br.org.inec.pcsilveira.githubuser.ui.activity
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.SearchView
 import android.util.Log
 import android.view.Menu
@@ -12,6 +13,7 @@ import br.org.inec.pcsilveira.githubuser.R
 import br.org.inec.pcsilveira.githubuser.model.Repo
 import br.org.inec.pcsilveira.githubuser.model.User
 import br.org.inec.pcsilveira.githubuser.service.GithubService
+import br.org.inec.pcsilveira.githubuser.ui.adapter.RepoListAdapter
 import br.org.inec.pcsilveira.githubuser.util.RetrofitInitializer
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
@@ -91,7 +93,11 @@ class MainActivity : AppCompatActivity() {
                                                     response?.body()?.let {
                                                         userRepoProgressBar.visibility = View.GONE
                                                         val repos: List<Repo> = it
-
+                                                        with(userReposRecyclerView) {
+                                                            layoutManager = LinearLayoutManager(this@MainActivity)
+                                                            hasFixedSize()
+                                                            adapter = RepoListAdapter(this@MainActivity, repos)
+                                                        }
                                                         Log.d("REPOS:", repos.toString())
                                                     }
                                                 }
@@ -123,6 +129,7 @@ class MainActivity : AppCompatActivity() {
             userImageView.setImageDrawable(null)
             userNameTextView.text = ""
             userNickNameTextView.text = ""
+            userReposRecyclerView.adapter = null
             displayGithubLogo()
         }
     }

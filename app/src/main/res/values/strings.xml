@@ -2,7 +2,11 @@
     <string name="app_name">Github User</string>
     <string name="search_hint">Procure seu usuário aqui</string>
     <string name="action_search">Procurar Usuários</string>
-    <string name="github_user_search_hint">Pesquisar Usuários...</string>
+    <string name="github_user_search_hint">Pesquisar Usuários…</string>
     <string name="github_user_image_description">Imagem do usuário do github</string>
     <string name="github_logo_image_description">Github logo</string>
+    <string name="java">Java</string>
+    <string name="created_at">Criado em:</string>
+    <string name="mock_brazilian_date">15/05/2016</string>
+    <string name="language">Linguagem:</string>
 </resources>

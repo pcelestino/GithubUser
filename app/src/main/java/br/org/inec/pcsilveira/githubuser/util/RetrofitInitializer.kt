@@ -11,6 +11,5 @@ class RetrofitInitializer {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
-
     val githubService get() = retrofit.create(GithubService::class.java)
 }
