@@ -51,23 +51,25 @@ class MainActivity : AppCompatActivity() {
             override fun onQueryTextSubmit(query: String): Boolean {
                 resetLayout()
                 displayUserInfo()
-
                 showUserInfoProgressBar()
-
-                githubWebClient.fetchUser(query, object : GithubUserReponse {
-                    override fun success(user: User) {
-                        configureUserInfo(user)
-                    }
-
-                    override fun failure() {
-                        hideUserInfoProgressBar()
-                        showError(getString(R.string.invalid_user))
-                        displayGithubLogo()
-                    }
-                })
+                fetchUser(query)
                 return false
             }
 
+        })
+    }
+
+    private fun fetchUser(query: String) {
+        githubWebClient.fetchUser(query, object : GithubUserReponse {
+            override fun success(user: User) {
+                configureUserInfo(user)
+            }
+
+            override fun failure() {
+                hideUserInfoProgressBar()
+                showError(getString(R.string.invalid_user))
+                displayGithubLogo()
+            }
         })
     }
 
@@ -104,7 +106,6 @@ class MainActivity : AppCompatActivity() {
             }
         })
     }
-
 
     private fun configureUserReposList(repos: List<Repo>) {
         with(userReposRecyclerView) {
