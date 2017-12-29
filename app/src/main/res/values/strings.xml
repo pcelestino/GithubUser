@@ -9,4 +9,7 @@
     <string name="created_at">Criado em:</string>
     <string name="mock_brazilian_date">15/05/2016</string>
     <string name="language">Linguagem:</string>
+    <string name="invalid_user">Usuário inválido</string>
+    <string name="invalid_repository">Repositório inválido</string>
+    <string name="click_on_search_icon_to_find_users">Toque no ícone de busca para localizar os usuários</string>
 </resources>

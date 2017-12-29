@@ -1,33 +1,28 @@
 package br.org.inec.pcsilveira.githubuser.ui.activity
 
-import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.SearchView
-import android.util.Log
 import android.view.Menu
 import android.view.View
 import android.view.animation.AnimationUtils
+import android.widget.Toast
 import br.org.inec.pcsilveira.githubuser.R
+import br.org.inec.pcsilveira.githubuser.callback.GithubReposResponse
+import br.org.inec.pcsilveira.githubuser.callback.GithubUserReponse
+import br.org.inec.pcsilveira.githubuser.callback.GlideResponse
 import br.org.inec.pcsilveira.githubuser.model.Repo
 import br.org.inec.pcsilveira.githubuser.model.User
-import br.org.inec.pcsilveira.githubuser.service.GithubService
+import br.org.inec.pcsilveira.githubuser.service.GithubWebClient
 import br.org.inec.pcsilveira.githubuser.ui.adapter.RepoListAdapter
-import br.org.inec.pcsilveira.githubuser.util.RetrofitInitializer
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DataSource
-import com.bumptech.glide.load.engine.GlideException
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
-import com.bumptech.glide.request.RequestListener
-import com.bumptech.glide.request.target.Target
+import br.org.inec.pcsilveira.githubuser.util.GlideLoader
 import kotlinx.android.synthetic.main.activity_main.*
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 
 
 class MainActivity : AppCompatActivity() {
+
+    private val githubWebClient = GithubWebClient()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,83 +34,35 @@ class MainActivity : AppCompatActivity() {
         menuInflater.inflate(R.menu.main_activity_menu, menu)
 
         val searchView = configureSearchView(menu)
-        val githubService = RetrofitInitializer().githubService
-        handleQuery(searchView, githubService)
+        handleQuery(searchView)
 
         return super.onCreateOptionsMenu(menu)
     }
 
-    private fun handleQuery(searchView: SearchView, githubService: GithubService) {
+    private fun handleQuery(searchView: SearchView) {
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextChange(newText: String): Boolean {
-                resetLayout(newText)
+                if (newText.isEmpty()) {
+                    resetLayout()
+                }
                 return true
             }
 
             override fun onQueryTextSubmit(query: String): Boolean {
-                Log.d("TEXTO ENVIADO", query)
+                resetLayout()
                 displayUserInfo()
 
-                userInfoProgressBar.visibility = View.VISIBLE
+                showUserInfoProgressBar()
 
-                githubService.fetchUser(query).enqueue(object : Callback<User> {
-                    override fun onResponse(call: Call<User>?, response: Response<User>?) {
-
-                        response?.body()?.let {
-                            val user: User = it
-
-                            Log.d("TEXTO MUDOU - RESULTADO", user.toString())
-                            Glide.with(this@MainActivity)
-                                    .load(user.avatarUrl)
-                                    .transition(DrawableTransitionOptions.withCrossFade())
-                                    .listener(object : RequestListener<Drawable> {
-                                        override fun onLoadFailed(e: GlideException?,
-                                                                  model: Any?,
-                                                                  target: Target<Drawable>?,
-                                                                  isFirstResource: Boolean): Boolean {
-                                            userInfoProgressBar.visibility = View.GONE
-                                            return false
-                                        }
-
-                                        override fun onResourceReady(resource: Drawable?,
-                                                                     model: Any?,
-                                                                     target: Target<Drawable>?,
-                                                                     dataSource: DataSource?,
-                                                                     isFirstResource: Boolean): Boolean {
-                                            userNameTextView.text = user.name
-                                            userNickNameTextView.text = user.login
-                                            userInfoProgressBar.visibility = View.GONE
-
-                                            userRepoProgressBar.visibility = View.VISIBLE
-
-                                            githubService.listRepos(user.login).enqueue(object : Callback<List<Repo>> {
-                                                override fun onResponse(call: Call<List<Repo>>?, response: Response<List<Repo>>?) {
-                                                    response?.body()?.let {
-                                                        userRepoProgressBar.visibility = View.GONE
-                                                        val repos: List<Repo> = it
-                                                        with(userReposRecyclerView) {
-                                                            layoutManager = LinearLayoutManager(this@MainActivity)
-                                                            hasFixedSize()
-                                                            adapter = RepoListAdapter(this@MainActivity, repos)
-                                                        }
-                                                        Log.d("REPOS:", repos.toString())
-                                                    }
-                                                }
-
-                                                override fun onFailure(call: Call<List<Repo>>?, t: Throwable?) {
-                                                    Log.d("FALHOU", t.toString())
-                                                }
-                                            })
-                                            return false
-                                        }
-
-                                    })
-                                    .into(userImageView)
-                        }
+                githubWebClient.fetchUser(query, object : GithubUserReponse {
+                    override fun success(user: User) {
+                        configureUserInfo(user)
                     }
 
-                    override fun onFailure(call: Call<User>?, t: Throwable?) {
-                        Log.d("FALHOU", t.toString())
+                    override fun failure() {
+                        hideUserInfoProgressBar()
+                        showError(getString(R.string.invalid_user))
+                        displayGithubLogo()
                     }
                 })
                 return false
@@ -124,14 +71,55 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun resetLayout(newText: String) {
-        if (newText.isEmpty()) {
-            userImageView.setImageDrawable(null)
-            userNameTextView.text = ""
-            userNickNameTextView.text = ""
-            userReposRecyclerView.adapter = null
-            displayGithubLogo()
+    private fun configureUserInfo(user: User) {
+        GlideLoader().load(this, user.avatarUrl, userImageView, object : GlideResponse {
+            override fun success() {
+                hideUserInfoProgressBar()
+                showUserReposProgressBar()
+
+                userNameTextView.text = user.name
+                userNickNameTextView.text = user.login
+
+                loadListRepos(user)
+            }
+
+            override fun failure() {
+                hideUserInfoProgressBar()
+            }
+
+        })
+    }
+
+    private fun loadListRepos(user: User) {
+        githubWebClient.listRepos(user.login, object : GithubReposResponse {
+            override fun success(repos: List<Repo>) {
+                hideUserReposProgressBar()
+                configureUserReposList(repos)
+            }
+
+            override fun failure() {
+                hideUserReposProgressBar()
+                showError(getString(R.string.invalid_repository))
+                displayGithubLogo()
+            }
+        })
+    }
+
+
+    private fun configureUserReposList(repos: List<Repo>) {
+        with(userReposRecyclerView) {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            hasFixedSize()
+            adapter = RepoListAdapter(this@MainActivity, repos)
         }
+    }
+
+    private fun resetLayout() {
+        userImageView.setImageDrawable(null)
+        userNameTextView.text = ""
+        userNickNameTextView.text = ""
+        userReposRecyclerView.adapter = null
+        displayGithubLogo()
     }
 
     private fun configureSearchView(menu: Menu?): SearchView {
@@ -158,5 +146,25 @@ class MainActivity : AppCompatActivity() {
         if (githubViewSwitcher.displayedChild != 1) {
             githubViewSwitcher.displayedChild = 1
         }
+    }
+
+    private fun hideUserInfoProgressBar() {
+        userInfoProgressBar.visibility = View.GONE
+    }
+
+    private fun showUserInfoProgressBar() {
+        userInfoProgressBar.visibility = View.VISIBLE
+    }
+
+    private fun hideUserReposProgressBar() {
+        userReposProgressBar.visibility = View.GONE
+    }
+
+    private fun showUserReposProgressBar() {
+        userReposProgressBar.visibility = View.VISIBLE
+    }
+
+    private fun showError(message: String) {
+        Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
     }
 }

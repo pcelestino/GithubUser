@@ -13,6 +13,7 @@ import br.org.inec.pcsilveira.githubuser.extension.limitsUpTo
 import br.org.inec.pcsilveira.githubuser.model.Repo
 import kotlinx.android.synthetic.main.github_user_repo.view.*
 
+
 class RepoListAdapter(private val context: Context,
                       private val repos: List<Repo>) : Adapter<RepoListAdapter.ViewHolder>() {
     override fun onBindViewHolder(holder: ViewHolder?, position: Int) {
